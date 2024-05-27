@@ -1,7 +1,7 @@
 import builtin.file
 
 fn main() raises:
-    print("Universal Machine")
+    print("Universal Machine -- output to `out.log`")
     var program = List[UInt32]()
     var out: file.FileHandle
     out = file.open("out.log", "w")
@@ -14,7 +14,6 @@ fn main() raises:
         for n in range(4):
             i = (i << 8) + byts[n].cast[DType.uint8]().cast[DType.uint32]()
         program.append(i)
-    print("Read program of " + str(len(program)) + " bytes.")
     var platters = List[List[UInt32]](program)
     var reg = List[UInt32](0,0,0,0,0,0,0,0)
     var finger = 0
@@ -26,9 +25,11 @@ fn main() raises:
         var a = int((v >> 6) & 0b111)
         var b = int((v >> 3) & 0b111)
         var c = int((v >> 0) & 0b111)
-        iteration = iteration + 1
-        if iteration % 10000 == 0:
-            print("iter: " + str(iteration) + " v: " + str(v) + " op: " + str(op) + " a: " + str(a) + " b: " + str(b) + " c: " + str(c))
+        # iteration = iteration + 1
+        # if iteration % 10000 == 0:
+        #     print("iter: " + str(iteration) + " v: " + str(v) + " op: " + str(op) + " a: " + str(a) + " b: " + str(b) + " c: " + str(c))
+        #     for i in range(8):
+        #         print("reg[" + str(i) + "] = " + str(reg[i]))
         if op == 0:
             if reg[c] != 0:
                 reg[a] = reg[b]
@@ -57,7 +58,6 @@ fn main() raises:
             platters[int(reg[c])].resize(0, 0)
             # platters[int(reg[c])] = List[UInt32]()
         elif op == 10:
-            # print(chr(int(regs[int(c)])))
             try:
                 out.write(chr(int(reg[c])))
             except:
@@ -65,10 +65,6 @@ fn main() raises:
         elif op == 12:
             if reg[b] != 0:
                 platters[0] = platters[int(reg[b])]
-                # platters[0] = List[UInt32]()
-                # platters[0].resize(len(platters[int(reg[b])]), 0)
-                # for i in range(len(platters[int(reg[b])])):
-                #     platters[0][i] = platters[int(reg[b])][i]
             finger = int(reg[c])
         elif op == 13:
             reg[int((v >> 25) & 0b111)] = v & 0b1111111111111111111111111
