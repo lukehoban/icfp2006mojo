@@ -4,10 +4,9 @@ fn main() raises:
     print("Universal Machine")
     var program = List[UInt32]()
     var out: file.FileHandle
-    
     out = file.open("out.log", "w")
     var f = file.open("sandmark.umz", "r")
-    for x in range(100000000):
+    while True:
         var byts = f.read_bytes(4)
         if len(byts) < 4:
             break
@@ -15,59 +14,64 @@ fn main() raises:
         for n in range(4):
             i = (i << 8) + byts[n].cast[DType.uint8]().cast[DType.uint32]()
         program.append(i)
-
     print("Read program of " + str(len(program)) + " bytes.")
     var platters = List[List[UInt32]](program)
-    var regs = List[UInt32](0,0,0,0,0,0,0,0)
+    var reg = List[UInt32](0,0,0,0,0,0,0,0)
     var finger = 0
+    var iteration = 0
     while True:
         var v = platters[0][finger]
         finger = finger+1
         var op = v >> 28
-        var a = (v >> 6) & 0b111
-        var b = (v >> 3) & 0b111
-        var c = (v >> 0) & 0b111
-        # print("v: " + str(v) + " op: " + str(op) + " a: " + str(a) + " b: " + str(b) + " c: " + str(c))
+        var a = int((v >> 6) & 0b111)
+        var b = int((v >> 3) & 0b111)
+        var c = int((v >> 0) & 0b111)
+        iteration = iteration + 1
+        if iteration % 10000 == 0:
+            print("iter: " + str(iteration) + " v: " + str(v) + " op: " + str(op) + " a: " + str(a) + " b: " + str(b) + " c: " + str(c))
         if op == 0:
-            if regs[int(c)] != 0:
-                regs[int(a)] = regs[int(b)]
+            if reg[c] != 0:
+                reg[a] = reg[b]
         elif op == 1:
-            regs[int(a)] = platters[int(regs[int(b)])][int(regs[int(c)])]
+            reg[a] = platters[int(reg[b])][int(reg[c])]
         elif op == 2:
-            platters[int(regs[int(a)])][int(regs[int(b)])] = regs[int(c)]
+            platters[int(reg[a])][int(reg[b])] = reg[c]
         elif op == 3:
-            regs[int(a)] = regs[int(b)] + regs[int(c)]
+            reg[a] = reg[b] + reg[c]
         elif op == 4:
-            regs[int(a)] = regs[int(b)] * regs[int(c)]
+            reg[a] = reg[b] * reg[c]
         elif op == 5:
-            regs[int(a)] = regs[int(b)] / regs[int(c)]
+            reg[a] = reg[b] / reg[c]
         elif op == 6:
-            regs[int(a)] = ~(regs[int(b)] & regs[int(c)])
+            reg[a] = ~(reg[b] & reg[c])
         elif op == 8:
             var newplatter = List[UInt32]()
-            newplatter.resize(int(regs[int(c)]), 0)
+            newplatter.resize(int(reg[c]), 0)
             platters.append(newplatter)
-            regs[int(b)] = len(platters) - 1
+            reg[b] = len(platters) - 1
+            # print(len(platters))
+            # for i in range(len(platters)):
+            #     print("  " + str(len(platters[i])))
         elif op == 9:
-            # Clear out all the data?
-            # platters[int(regs[int(c)])].resize(0, 0)
-            platters[int(regs[int(c)])] = List[UInt32]()
-            # var x = 1
+            # TODO: Actually reclaim space in the array
+            platters[int(reg[c])].resize(0, 0)
+            # platters[int(reg[c])] = List[UInt32]()
         elif op == 10:
+            # print(chr(int(regs[int(c)])))
             try:
-                out.write(chr(int(regs[int(c)])))
+                out.write(chr(int(reg[c])))
             except:
                 break
-            # print(chr(int(regs[int(c)])))
         elif op == 12:
-            if regs[int(b)] != 0:
-                platters[0] = platters[int(regs[int(b)])]
-            finger = int(regs[int(c)])
+            if reg[b] != 0:
+                platters[0] = platters[int(reg[b])]
+                # platters[0] = List[UInt32]()
+                # platters[0].resize(len(platters[int(reg[b])]), 0)
+                # for i in range(len(platters[int(reg[b])])):
+                #     platters[0][i] = platters[int(reg[b])][i]
+            finger = int(reg[c])
         elif op == 13:
-            a = (v >> 25) & 0b111
-            var l = v & 0b1111111111111111111111111
-            # print("v: " + str(v) + " op: " + str(op) + " a: " + str(a) + " l: " + str(l))
-            regs[int(a)] = l 
+            reg[int((v >> 25) & 0b111)] = v & 0b1111111111111111111111111
         else:
             print("unhndled opcode: " + str(op))
             break
