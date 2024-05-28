@@ -1,10 +1,9 @@
 import builtin.file
+import builtin.io
+import time
 
 fn main() raises:
-    print("Universal Machine -- output to `out.log`")
     var program = List[UInt32]()
-    var out: file.FileHandle
-    out = file.open("out.log", "w")
     var f = file.open("sandmark.umz", "r")
     while True:
         var byts = f.read_bytes(4)
@@ -15,9 +14,10 @@ fn main() raises:
             i = (i << 8) + byts[n].cast[DType.uint8]().cast[DType.uint32]()
         program.append(i)
     var platters = List[List[UInt32]](program)
-    var reg = List[UInt32](0,0,0,0,0,0,0,0)
+    var reg = SIMD[DType.uint32, 8](0,0,0,0,0,0,0,0)
     var finger = 0
     var iteration = 0
+    var start = time.now()
     while True:
         var v = platters[0][finger]
         finger = finger+1
@@ -25,11 +25,9 @@ fn main() raises:
         var a = int((v >> 6) & 0b111)
         var b = int((v >> 3) & 0b111)
         var c = int((v >> 0) & 0b111)
-        # iteration = iteration + 1
-        # if iteration % 10000 == 0:
-        #     print("iter: " + str(iteration) + " v: " + str(v) + " op: " + str(op) + " a: " + str(a) + " b: " + str(b) + " c: " + str(c))
-        #     for i in range(8):
-        #         print("reg[" + str(i) + "] = " + str(reg[i]))
+        iteration = iteration + 1
+        if iteration % 1000000 == 0:
+            print((Float32(iteration) * 1e9) / Float32(time.now()-start), " ops/sec")
         if op == 0:
             if reg[c] != 0:
                 reg[a] = reg[b]
@@ -50,18 +48,10 @@ fn main() raises:
             newplatter.resize(int(reg[c]), 0)
             platters.append(newplatter)
             reg[b] = len(platters) - 1
-            # print(len(platters))
-            # for i in range(len(platters)):
-            #     print("  " + str(len(platters[i])))
         elif op == 9:
-            # TODO: Actually reclaim space in the array
-            platters[int(reg[c])].resize(0, 0)
-            # platters[int(reg[c])] = List[UInt32]()
+            platters[int(reg[c])].resize(0)
         elif op == 10:
-            try:
-                out.write(chr(int(reg[c])))
-            except:
-                break
+            io._put(chr(int(reg[c])))
         elif op == 12:
             if reg[b] != 0:
                 platters[0] = platters[int(reg[b])]
@@ -69,5 +59,5 @@ fn main() raises:
         elif op == 13:
             reg[int((v >> 25) & 0b111)] = v & 0b1111111111111111111111111
         else:
-            print("unhndled opcode: " + str(op))
+            print("unhandled opcode: " + str(op))
             break
