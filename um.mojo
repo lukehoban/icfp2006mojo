@@ -19,7 +19,7 @@ fn main() raises:
     var iteration = 0
     var start = time.now()
     while True:
-        var v = platters[0][finger]
+        var v = platters.__get_ref(0)[].__get_ref(finger)[]
         finger = finger+1
         var op = v >> 28
         var a = int((v >> 6) & 0b111)
@@ -32,9 +32,9 @@ fn main() raises:
             if reg[c] != 0:
                 reg[a] = reg[b]
         elif op == 1:
-            reg[a] = platters[int(reg[b])][int(reg[c])]
+            reg[a] = platters.__get_ref(int(reg[b]))[].__get_ref(int(reg[c]))[]
         elif op == 2:
-            platters[int(reg[a])][int(reg[b])] = reg[c]
+            platters.__get_ref(int(reg[a]))[].__get_ref(int(reg[b]))[] = reg[c]
         elif op == 3:
             reg[a] = reg[b] + reg[c]
         elif op == 4:
